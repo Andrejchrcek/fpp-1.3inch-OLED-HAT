@@ -79,8 +79,8 @@ if (file_exists($configFile)) {
     <legend>📝 Instructions & Status</legend>
     <p>This plugin provides a simple remote control interface using an OLED screen and buttons connected to your FPP device's GPIO pins.</p>
     <ul>
+        <li>The installation process automatically copies the main script (<code>oled_remote.py</code>) to the FPP scripts folder.</li>
         <li>Use the settings above to enable or disable features.</li>
-        <li>Your main Python script (<code>oled_remote.py</code>) must be located in <code>/home/fpp/media/scripts/</code>.</li>
         <li>For debugging, check the plugin log file at: <code><?php echo $logFile; ?></code></li>
     </ul>
 </div>

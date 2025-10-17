@@ -1,6 +1,6 @@
 <?php
 // Názov pluginu - zmeň podľa potreby
-$pluginName = "OLED-Remote";
+$pluginName = "fpp-oled_remote";
 
 // Cesty k súborom
 $pluginDir = "/home/fpp/media/plugins/{$pluginName}";

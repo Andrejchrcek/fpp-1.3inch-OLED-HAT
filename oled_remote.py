@@ -38,6 +38,7 @@ current_mode = "LIST"
 needs_redraw = True
 last_fpp_status = {}
 settings = {}  # Sem sa uložia nastavenia z JSON súboru
+last_config_check = 0  # Čas poslednej kontroly config súboru
 
 joy_up = Button(6, pull_up=True, bounce_time=0.1)
 joy_down = Button(19, pull_up=True, bounce_time=0.1)
@@ -68,14 +69,18 @@ except IOError:
 def load_settings():
     """Načíta nastavenia z config súboru FPP."""
     global settings
-    defaults = {'enabled': True, 'showBattery': True}
+    defaults = {'enabled': "1", 'showBattery': "1"}
     try:
         with open(CONFIG_FILE_PATH, 'r') as f:
             loaded_settings = json.load(f)
             settings = {**defaults, **loaded_settings}
-    except (FileNotFoundError, json.JSONDecodeError):
-        print("Config file not found or invalid. Using default settings.")
+            # Konverzia showBattery na boolean pre jednoduchšie použitie
+            settings['showBattery'] = settings.get('showBattery', "1") == "1"
+        print(f"Settings loaded: {settings}")
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"Config file error: {e}. Using default settings.")
         settings = defaults
+        settings['showBattery'] = True  # Predvolené ako boolean
 
 def run_api_command(command_path):
     try:
@@ -144,14 +149,21 @@ def draw_message(message, delay=2):
     needs_redraw = True
 
 def draw_ui():
-    global needs_redraw
+    global needs_redraw, last_config_check
     if not needs_redraw: return
+
+    # Dynamicky načítaj nastavenia každých 5 sekúnd
+    if time.time() - last_config_check > 5:
+        load_settings()
+        last_config_check = time.time()
+
     draw.rectangle((0,0,disp.width,disp.height), 0, 0)
 
     if current_mode == "LIST":
         ip = get_ip_address()
         draw.text((2, 0), ip, font=font_small, fill=1)
         
+        # Zobraz batériu iba ak je povolená v nastaveniach
         if settings.get('showBattery', True):
             batt = get_battery_status()
             batt_text = f"{int(batt)}%" if batt != -1 else "N/A"
@@ -235,12 +247,13 @@ def handle_shutdown():
 
 # --- Hlavná Slučka ---
 def main():
-    global current_mode, needs_redraw, last_fpp_status
+    global current_mode, needs_redraw, last_fpp_status, last_config_check
     if os.geteuid() != 0:
         print("Warning: This script should ideally run with 'sudo' for full hardware access.")
     
     # Načítaj nastavenia pluginu hneď na začiatku
     load_settings()
+    last_config_check = time.time()
 
     disp.Init()
     disp.set_contrast(DEFAULT_BRIGHTNESS)

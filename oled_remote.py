@@ -43,7 +43,7 @@ last_config_check = 0  # Čas poslednej kontroly config súboru
 joy_up = Button(6, pull_up=True, bounce_time=0.1)
 joy_down = Button(19, pull_up=True, bounce_time=0.1)
 key_play = Button(21, pull_up=True, bounce_time=0.1)
-key_stop = Button(20, pull_up=True, bounce_time=0.1)
+key_stop = Button(20, pull_up=True, bounce_time=0.1, hold_time=1)  # Pridané hold_time=1 pre STOP
 key_shutdown = Button(16, pull_up=True, hold_time=3, bounce_time=0.1)
 
 disp = SH1106.SH1106()
@@ -212,10 +212,7 @@ def draw_ui():
         draw.rectangle((0, bar_y, disp.width - 1, bar_y + 10), outline=1, fill=0)
         if bar_width > 0:
             draw.rectangle((1, bar_y + 1, bar_width -1, bar_y + 9), outline=1, fill=1)
-        draw.text((2, 55), "Press STOP to exit", font=font_small, fill=1)
-
-    disp.ShowImage(disp.getbuffer(image))
-    needs_redraw = False
+        draw.text((2, 55), "Hold STOP 1s to exit", font=font_small, fill=1)  # Upravený text pre STOP
 
 # --- Handlery pre Tlačidlá ---
 def handle_up():
@@ -237,7 +234,13 @@ def handle_play():
     run_api_command(f"command/Start%20Playlist/{seq_to_play}.fseq/1/false")
 
 def handle_stop():
+    global needs_redraw
     run_api_command("command/Stop%20Now")
+    needs_redraw = True  # Prekresli UI po zastavení
+
+def handle_shutdown_pressed():
+    # Zobraz správu hneď po stlačení tlačidla OFF
+    draw_message("Hold 3 seconds", delay=0)  # delay=0, aby sa nezdržiavalo
 
 def handle_shutdown():
     draw_message("Shutting Down...", delay=3)
@@ -264,7 +267,10 @@ def main():
     joy_up.when_pressed = handle_up
     joy_down.when_pressed = handle_down
     key_play.when_pressed = handle_play
-    key_stop.when_pressed = handle_stop
+    # STOP reaguje okamžite v LIST režime, ale v PLAYING vyžaduje podržanie 1s
+    key_stop.when_pressed = handle_stop if current_mode == "LIST" else None
+    key_stop.when_held = handle_stop if current_mode == "PLAYING" else None
+    key_shutdown.when_pressed = handle_shutdown_pressed  # Nový handler pre stlačenie OFF
     key_shutdown.when_held = handle_shutdown
     
     last_status_check = 0
@@ -279,9 +285,15 @@ def main():
                 
                 if is_playing and current_mode != "PLAYING":
                     current_mode = "PLAYING"
+                    # Aktualizuj handlery pre STOP v PLAYING režime
+                    key_stop.when_pressed = None
+                    key_stop.when_held = handle_stop
                     needs_redraw = True
                 elif not is_playing and current_mode == "PLAYING":
                     current_mode = "LIST"
+                    # Aktualizuj handlery pre STOP v LIST režime
+                    key_stop.when_pressed = handle_stop
+                    key_stop.when_held = None
                     needs_redraw = True
                 
                 if current_mode == "PLAYING":

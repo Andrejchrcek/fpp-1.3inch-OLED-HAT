@@ -13,7 +13,7 @@
 
 $menuEntries = Array(
 	Array(
-		'text' => '1.3inch-OLED-HAT',
+		'text' => 'Oled_remote',
 		'type' => 'content',
 		'page' => 'config.php',
 		'wrap' => 1

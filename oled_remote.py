@@ -7,18 +7,17 @@ import os
 import requests
 import json
 from PIL import Image, ImageDraw, ImageFont
-from gpiozero import Button, OutputDevice # Pridaný OutputDevice
+from gpiozero import Button, OutputDevice
 
 # Import lokálnych knižníc
 import SH1106
 import INA219
 
 # --- Názov pluginu (musí sa zhodovať s adresárom) ---
-PLUGIN_NAME = "OLED-Remote"
+PLUGIN_NAME = "fpp-oled_remote"
 
 # --- Automatické zapnutie displeja ---
-# Toto nahradzuje potrebu manuálne upravovať /boot/config.txt
-try:
+try
     display_power_pin = OutputDevice(25)
     display_power_pin.on()
     print("GPIO 25 pre displej úspešne zapnutý.")
@@ -26,12 +25,11 @@ try:
 except Exception as e:
     print(f"CHYBA: Nepodarilo sa nastaviť GPIO 25: {e}")
 
-
 # --- Hardvérové objekty a konfigurácia ---
 FPP_API_URL = "http://localhost/api/"
 LIST_REFRESH_INTERVAL = 3
 DEFAULT_BRIGHTNESS = 100
-CONFIG_FILE_PATH = f"/home/fpp/media/plugins/{PLUGIN_NAME}/config.json"
+CONFIG_FILE_PATH = f"/home/fpp/media/config/plugin.{PLUGIN_NAME}.json"
 
 # --- Globálne premenné ---
 sequence_list = []
@@ -39,7 +37,7 @@ selected_index = 0
 current_mode = "LIST"
 needs_redraw = True
 last_fpp_status = {}
-settings = {} # Sem sa uložia nastavenia z JSON súboru
+settings = {}  # Sem sa uložia nastavenia z JSON súboru
 
 joy_up = Button(6, pull_up=True, bounce_time=0.1)
 joy_down = Button(19, pull_up=True, bounce_time=0.1)
@@ -66,16 +64,14 @@ except IOError:
     font_large = ImageFont.load_default()
     font_xl = ImageFont.load_default()
 
-
 # --- Funkcie ---
 def load_settings():
-    """Načíta nastavenia z config.json súboru."""
+    """Načíta nastavenia z config súboru FPP."""
     global settings
-    defaults = {'showBattery': True}
+    defaults = {'enabled': True, 'showBattery': True}
     try:
         with open(CONFIG_FILE_PATH, 'r') as f:
             loaded_settings = json.load(f)
-            # Zabezpečí, že všetky kľúče existujú
             settings = {**defaults, **loaded_settings}
     except (FileNotFoundError, json.JSONDecodeError):
         print("Config file not found or invalid. Using default settings.")
@@ -156,12 +152,10 @@ def draw_ui():
         ip = get_ip_address()
         draw.text((2, 0), ip, font=font_small, fill=1)
         
-        # --- NOVÁ LOGIKA: Zobraz batériu iba ak je povolená v nastaveniach ---
         if settings.get('showBattery', True):
             batt = get_battery_status()
             batt_text = f"{int(batt)}%" if batt != -1 else "N/A"
             draw.text((disp.width - 38, 0), batt_text, font=font_small, fill=1)
-        # --- KONIEC NOVEJ LOGIKY ---
 
         draw.line([(0, 12), (disp.width, 12)], fill=1, width=1)
         draw.text((92, 18), "PLAY", font=font_large, fill=1)
@@ -237,7 +231,6 @@ def handle_shutdown():
     draw_message("Shutting Down...", delay=3)
     run_api_command("command/Stop%20Gracefully")
     time.sleep(1)
-    # Odporúča sa používať plnú cestu pre shutdown pre spoľahlivosť
     subprocess.run("/sbin/shutdown -h now", shell=True)
 
 # --- Hlavná Slučka ---
@@ -283,7 +276,6 @@ def main():
             last_status_check = time.time()
 
         if current_mode == "LIST" and time.time() - last_list_refresh > LIST_REFRESH_INTERVAL:
-            # Tu by sa malo volať get_sequences(), aby sa zoznam obnovoval
             get_sequences()
             needs_redraw = True
             last_list_refresh = time.time()
@@ -299,7 +291,6 @@ if __name__ == '__main__':
         disp.clear()
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
-        # Zapíš chybu do logu pre jednoduchšie ladenie
         with open(f"/home/fpp/media/logs/{PLUGIN_NAME}.log", "a") as log_file:
             log_file.write(f"FATAL ERROR: {e}\n")
         disp.clear()

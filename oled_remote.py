@@ -17,7 +17,7 @@ import INA219
 PLUGIN_NAME = "fpp-oled_remote"
 
 # --- Automatické zapnutie displeja ---
-try
+try:
     display_power_pin = OutputDevice(25)
     display_power_pin.on()
     print("GPIO 25 pre displej úspešne zapnutý.")

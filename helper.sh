@@ -1,45 +1,30 @@
 #!/bin/bash
 
-# Názov pluginu a skriptov
-PLUGIN_NAME="fpp-oled_remote"
-PYTHON_SCRIPT="oled_remote.py"
+CONFIG_FILE="/home/fpp/media/config/plugin.fpp-oled_remote.json"
 
-# Cesty
-PLUGIN_DIR="/home/fpp/media/plugins/${PLUGIN_NAME}"
-CONFIG_FILE="${PLUGIN_DIR}/config.json"
-# Adresa pre API zostáva rovnaká
-FPP_API_URL="http://localhost/api/settings"
-
-# Zisti, či je plugin povolený v konfiguračnom súbore
-if [ ! -f "$CONFIG_FILE" ]; then
-    echo "Creating default config file..."
-    echo '{"enabled": false, "showBattery": true}' > "$CONFIG_FILE"
+# Skontroluj, či jq je dostupné (štandard v FPP)
+if ! command -v jq &> /dev/null; then
+  echo "jq not found, cannot parse config."
+  exit 1
 fi
 
-ENABLED=$(jq -r '.enabled' "$CONFIG_FILE")
+ENABLED=$(jq -r '.enabled // "0"' "$CONFIG_FILE")
 
-if [ "$ENABLED" == "true" ]; then
-    echo "Enabling OLED-Remote startup script via API..."
-    # --- TOTO JE KĽÚČOVÁ OPRAVA ---
-    # Posielame POST na všeobecnú adresu /api/settings
-    # a v dátach (-d) špecifikujeme, čo meníme
-    curl -s -X POST -H "Content-Type: application/json" \
-         -d '{"FPPStartScript": "'"${PYTHON_SCRIPT}"'"}' \
-         "${FPP_API_URL}"
+# Nájdi PID Python skriptu
+PID=$(pgrep -f "python3 /home/fpp/media/plugins/fpp-oled_remote/oled_remote.py")
+
+if [ "$ENABLED" = "1" ]; then
+  # Ak už beží, zabi a reštartuj
+  if [ -n "$PID" ]; then
+    kill "$PID"
+    sleep 1
+  fi
+  /usr/bin/python3 /home/fpp/media/plugins/fpp-oled_remote/oled_remote.py &
+  echo "OLED Remote script started."
 else
-    echo "Disabling OLED-Remote startup script via API..."
-    # Najprv zistíme, či je náš skript aktuálne nastavený (GET zostáva rovnaký)
-    CURRENT_START_SCRIPT=$(curl -s "${FPP_API_URL}/FPPStartScript")
-    
-    if [ "$CURRENT_START_SCRIPT" == "\"${PYTHON_SCRIPT}\"" ]; then
-        # --- AJ TU JE OPRAVA ---
-        # Posielame POST na všeobecnú adresu s prázdnou hodnotou
-        curl -s -X POST -H "Content-Type: application/json" \
-             -d '{"FPPStartScript": ""}' \
-             "${FPP_API_URL}"
-    else
-        echo "Startup script is not set to our script, doing nothing."
-    fi
+  # Ak beží, zabi
+  if [ -n "$PID" ]; then
+    kill "$PID"
+    echo "OLED Remote script stopped."
+  fi
 fi
-
-echo "Helper script finished."

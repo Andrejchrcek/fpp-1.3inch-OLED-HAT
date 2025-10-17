@@ -1,29 +1,38 @@
 #!/bin/bash
 
 # Názov pluginu a skriptov
-PLUGIN_NAME="OLED-Remote"
+PLUGIN_NAME="fpp-oled_remote"
 PYTHON_SCRIPT="oled_remote.py"
 
 # Cesty
 PLUGIN_DIR="/home/fpp/media/plugins/${PLUGIN_NAME}"
 CONFIG_FILE="${PLUGIN_DIR}/config.json"
-FPP_COMMAND="/opt/fpp/bin/fpp"
+FPP_API_URL="http://localhost/api"
 
 # Zisti, či je plugin povolený v konfiguračnom súbore
-# Používame `jq` na čítanie JSON. FPP ho má predinštalovaný.
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "Creating default config file..."
+    echo '{"enabled": false, "showBattery": true}' > "$CONFIG_FILE"
+fi
+
 ENABLED=$(jq -r '.enabled' "$CONFIG_FILE")
 
 if [ "$ENABLED" == "true" ]; then
-    echo "Enabling OLED-Remote startup script..."
-    # Pridá tvoj skript do FPP Start Script
-    $FPP_COMMAND -S FPPStartScript "${PYTHON_SCRIPT}"
+    echo "Enabling OLED-Remote startup script via API..."
+    # Použijeme API na nastavenie štartovacieho skriptu.
+    # Hodnotu posielame v úvodzovkách, lebo API očakáva JSON string.
+    curl -s -X POST -d "\"${PYTHON_SCRIPT}\"" "${FPP_API_URL}/settings/FPPStartScript"
 else
-    echo "Disabling OLED-Remote startup script..."
-    # Odstráni tvoj skript z FPP Start Script
-    # Porovná, či je náš skript aktuálne nastavený, a ak áno, vymaže ho.
-    CURRENT_START_SCRIPT=$($FPP_COMMAND -g FPPStartScript)
+    echo "Disabling OLED-Remote startup script via API..."
+    # Najprv zistíme, či je náš skript aktuálne nastavený
+    CURRENT_START_SCRIPT=$(curl -s "${FPP_API_URL}/settings/FPPStartScript")
+    
+    # Porovnáme ho s názvom nášho skriptu (vrátane úvodzoviek, ktoré vracia API)
     if [ "$CURRENT_START_SCRIPT" == "\"${PYTHON_SCRIPT}\"" ]; then
-        $FPP_COMMAND -S FPPStartScript ""
+        # Ak áno, nastavíme prázdnu hodnotu, čím ho vymažeme
+        curl -s -X POST -d '""' "${FPP_API_URL}/settings/FPPStartScript"
+    else
+        echo "Startup script is not set to our script, doing nothing."
     fi
 fi
 

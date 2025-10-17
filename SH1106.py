@@ -15,7 +15,8 @@ class SH1106(object):
         #Initialize DC RST pin
         self.RPI = config.RaspberryPi()
         self._dc = self.RPI.GPIO_DC_PIN
-        self._rst = self.RPI.GPIO_RST_PIN
+        # Nasledujúci riadok je zakomentovaný, pretože reset pin (RST) riadi náš hlavný skript.
+        # self._rst = self.RPI.GPIO_RST_PIN
         self.Device = self.RPI.Device
 
 
@@ -34,8 +35,10 @@ class SH1106(object):
     def Init(self):
         if (self.RPI.module_init() != 0):
             return -1
-        """Initialize dispaly"""    
-        self.reset()
+        """Initialize dispaly"""
+        # Nasledujúci riadok je zakomentovaný, pretože hardvérový reset už vykonal náš hlavný skript.
+        # self.reset()
+        
         self.command(0xAE);#--turn off oled panel
         self.command(0x02);#---set low column address
         self.command(0x10);#---set high column address
@@ -46,7 +49,7 @@ class SH1106(object):
         self.command(0xA6);#--set normal display
         self.command(0xA8);#--set multiplex ratio(1 to 64)
         self.command(0x3F);#--1/64 duty
-        self.command(0xD3);#-set display offset    Shift Mapping RAM Counter (0x00~0x3F)
+        self.command(0xD3);#-set display offset   Shift Mapping RAM Counter (0x00~0x3F)
         self.command(0x00);#-not offset
         self.command(0xd5);#--set display clock divide ratio/oscillator frequency
         self.command(0x80);#--set divide ratio, Set Clock as 100 Frames/Sec
@@ -67,15 +70,17 @@ class SH1106(object):
         """Sets the display contrast."""
         self.command(0x81)  # Set contrast control register
         self.command(contrast)  # Set contrast value (0-255)
-   
-    def reset(self):
-        """Reset the display"""
-        self.RPI.digital_write(self._rst,True)
-        time.sleep(0.1)
-        self.RPI.digital_write(self._rst,False)
-        time.sleep(0.1)
-        self.RPI.digital_write(self._rst,True)
-        time.sleep(0.1)
+    
+    # Celá táto funkcia reset() je teraz nepotrebná a zakomentovaná,
+    # pretože by spôsobovala chyby a resetovanie už zabezpečuje oled_remote.py.
+    # def reset(self):
+        # """Reset the display"""
+        # self.RPI.digital_write(self._rst,True)
+        # time.sleep(0.1)
+        # self.RPI.digital_write(self._rst,False)
+        # time.sleep(0.1)
+        # self.RPI.digital_write(self._rst,True)
+        # time.sleep(0.1)
     
     def getbuffer(self, image):
         # print "bufsiz = ",(self.width/8) * self.height
@@ -127,15 +132,10 @@ class SH1106(object):
                     self.RPI.spi_writebyte([~pBuf[i+self.width*page]]); 
                 else :
                     self.RPI.i2c_writebyte(0x40, ~pBuf[i+self.width*page])
-                    
-                    
-
-	
-
+                        
+                        
     def clear(self):
         """Clear contents of image buffer"""
         _buffer = [0xff]*(self.width * self.height//8)
         self.ShowImage(_buffer) 
             #print "%d",_buffer[i:i+4096]
-    
-    

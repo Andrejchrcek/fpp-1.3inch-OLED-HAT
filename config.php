@@ -1,88 +1,70 @@
-# -*- coding:utf-8 -*-
+<?php
+// Názov pluginu
+$pluginName = "fpp-oled_remote";
 
-import time
-import spidev
-from gpiozero import DigitalOutputDevice, DigitalInputDevice
-from smbus import SMBus
+// Cesty k súborom
+$pluginDir = "/home/fpp/media/plugins/{$pluginName}";
+$configFile = "{$pluginDir}/config.json";
+$helperScript = "{$pluginDir}/helper.sh";
+$logFile = "/home/fpp/media/logs/{$pluginName}.log";
 
-# Pin definition
-RST_PIN         = 25
-DC_PIN          = 24
-CS_PIN          = 8
-BL_PIN          = 18
+// Predvolené nastavenia, ak konfiguračný súbor neexistuje
+$defaults = [
+    'enabled' => false,
+    'showBattery' => true
+];
 
-# SPI device, bus = 0, device = 0
-Device_SPI = 0
-Device_I2C = 1
+// Spracovanie uloženia formulára
+if (isset($_POST['save'])) {
+    $newSettings['enabled'] = isset($_POST['enabled']);
+    $newSettings['showBattery'] = isset($_POST['showBattery']);
 
-class RaspberryPi:
-    def __init__(self, spi=spidev.SpiDev(0,0), i2c=SMBus(1), spi_speed=10000000):
-        self.INPUT = False
-        self.OUTPUT = True
-        self.np = None
-        self.RST_PIN = RST_PIN
-        self.DC_PIN = DC_PIN
-        self.CS_PIN = CS_PIN
-        self.BL_PIN = BL_PIN
-        self.SPEED = spi_speed
-        self.spi = spi
-        self.i2c = i2c
-        self.Device = Device_I2C
-        
-        self.GPIO_DC_PIN = self.gpio_mode(DC_PIN, self.OUTPUT)
-        
-    def digital_write(self, pin, value):
-        if value:
-            pin.on()
-        else:
-            pin.off()
+    file_put_contents($configFile, json_encode($newSettings, JSON_PRETTY_PRINT));
+    
+    // Spustíme pomocný skript, aby aplikoval zmeny
+    exec("sudo {$helperScript} >> {$logFile} 2>&1");
+}
 
-    def digital_read(self, pin):
-        return pin.value
+// Načítanie aktuálnych nastavení pre zobrazenie
+$settings = $defaults;
+if (file_exists($configFile)) {
+    $loadedSettings = json_decode(file_get_contents($configFile), true);
+    if (is_array($loadedSettings)) {
+        $settings = array_merge($defaults, $loadedSettings);
+    }
+}
+?>
 
-    def delay_ms(self, delaytime):
-        time.sleep(delaytime / 1000.0)
+<div id="oled-remote-settings" class="settingsGroup">
+    <legend>🔌 OLED Remote Control Settings</legend>
 
-    def spi_writebyte(self, data):
-        self.spi.writebytes(data)
+    <?php if (isset($_POST['save'])): ?>
+        <div class="alert alert-success">✅ Settings have been saved successfully!</div>
+    <?php endif; ?>
 
-    def i2c_writebyte(self, reg, value):
-        self.i2c.write_byte_data(self.address, reg, value)
+    <form method="POST" action="">
+        <div class="settingsSetting">
+            <label class="col-form-label">Enable Plugin on Startup:</label>
+            <div class="setting">
+                <input type="checkbox" name="enabled" id="enabled" <?php echo $settings['enabled'] ? 'checked' : ''; ?>>
+                <label for="enabled"><span></span></label>
+                <em>When checked, the remote control script will start automatically with FPP after a restart.</em>
+            </div>
+        </div>
 
-    def gpio_mode(self, Pin, Mode, pull_up_down=None, active_state=True):
-        if Mode:
-            return DigitalOutputDevice(Pin, active_high=True, initial_value=False)
-        else:
-            if pull_up_down == 'pull_up':
-                return DigitalInputDevice(Pin, pull_up=True, active_state=active_state)
-            else:
-                return DigitalInputDevice(Pin, pull_up=False, active_state=active_state)
+        <div class="settingsSetting">
+            <label class="col-form-label">Show Battery Status:</label>
+            <div class="setting">
+                <input type="checkbox" name="showBattery" id="showBattery" <?php echo $settings['showBattery'] ? 'checked' : ''; ?>>
+                <label for="showBattery"><span></span></label>
+                <em>Displays the battery percentage on the OLED screen.</em>
+            </div>
+        </div>
 
-    def module_init(self):
-        if self.Device == Device_SPI:
-            self.spi.max_speed_hz = self.SPEED
-            self.spi.mode = 0b00
-            
-            # RST pin je zakomentovaný, riadi ho oled_remote.py
-            # self.GPIO_RST_PIN = self.gpio_mode(RST_PIN,self.OUTPUT)
-            
-            # DC pin sa už vytvára v __init__, tu ho nepotrebujeme
-            # self.GPIO_DC_PIN = self.gpio_mode(DC_PIN,self.OUTPUT)
-            
-            self.GPIO_CS_PIN = self.gpio_mode(CS_PIN,self.OUTPUT)
-            self.GPIO_BL_PIN = self.gpio_mode(BL_PIN,self.OUTPUT)
-            self.digital_write(self.GPIO_CS_PIN,True)
-            self.digital_write(self.GPIO_DC_PIN,True)
-        else:
-            self.address = 0x3c
-            # RST a DC piny už neriešime tu, sú vyriešené inde
-        
-        return 0
-
-    def module_exit(self):
-        if self.Device == Device_SPI:
-            self.digital_write(self.GPIO_DC_PIN,False)
-            self.spi.close()
-        else:
-            self.digital_write(self.GPIO_DC_PIN,False)
-            self.i2c.close()
+        <div class="settingsSetting">
+            <div class="setting">
+                <button type="submit" name="save" class="buttons btn-success">Save Settings</button>
+            </div>
+        </div>
+    </form>
+</div>

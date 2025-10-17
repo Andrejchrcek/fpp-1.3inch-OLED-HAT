@@ -1,6 +1,6 @@
 {
 	"repoName": "fpp-oled_remote",
-	"name": "oled_remote",
+	"name": "Oled_remote",
 	"author": "Andrej Chrcek",
 	"description": "Plugin for 128x64, 1.3inch OLED display HAT for Raspberry Pi and Uninterruptible Power Supply UPS HAT For Raspberry Pi Zero",
 	"homeURL": "https://github.com/Andrejchrcek/fpp-oled_remote",

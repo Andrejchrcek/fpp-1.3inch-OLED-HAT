@@ -1,8 +1,7 @@
 #!/bin/bash
-set -e  # Zastav skript pri akejkoľvek chybe
+set -e  
 
-# Premenné pre ľahšiu úpravu
-PLUGIN_NAME="OLED-Remote" # Dôležité: Tento názov musí sedieť s názvom adresára pluginu!
+PLUGIN_NAME="fpp-oled_remote" 
 SCRIPT_NAME="oled_remote.py"
 PLUGIN_DIR="/home/fpp/media/plugins/${PLUGIN_NAME}"
 SCRIPTS_DIR="/home/fpp/media/scripts"

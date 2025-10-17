@@ -1,27 +1,51 @@
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 import time
 import subprocess
 import socket
 import os
 import requests
+import json
 from PIL import Image, ImageDraw, ImageFont
-from gpiozero import Button
+from gpiozero import Button, OutputDevice # Pridaný OutputDevice
 
 # Import lokálnych knižníc
 import SH1106
-import config
 import INA219
+
+# --- Názov pluginu (musí sa zhodovať s adresárom) ---
+PLUGIN_NAME = "OLED-Remote"
+
+# --- Automatické zapnutie displeja ---
+# Toto nahradzuje potrebu manuálne upravovať /boot/config.txt
+try:
+    display_power_pin = OutputDevice(25)
+    display_power_pin.on()
+    print("GPIO 25 pre displej úspešne zapnutý.")
+    time.sleep(0.1)
+except Exception as e:
+    print(f"CHYBA: Nepodarilo sa nastaviť GPIO 25: {e}")
+
 
 # --- Hardvérové objekty a konfigurácia ---
 FPP_API_URL = "http://localhost/api/"
-LIST_REFRESH_INTERVAL = 3 
+LIST_REFRESH_INTERVAL = 3
 DEFAULT_BRIGHTNESS = 100
+CONFIG_FILE_PATH = f"/home/fpp/media/plugins/{PLUGIN_NAME}/config.json"
+
+# --- Globálne premenné ---
+sequence_list = []
+selected_index = 0
+current_mode = "LIST"
+needs_redraw = True
+last_fpp_status = {}
+settings = {} # Sem sa uložia nastavenia z JSON súboru
 
 joy_up = Button(6, pull_up=True, bounce_time=0.1)
 joy_down = Button(19, pull_up=True, bounce_time=0.1)
 key_play = Button(21, pull_up=True, bounce_time=0.1)
 key_stop = Button(20, pull_up=True, bounce_time=0.1)
-key_shutdown = Button(16, pull_up=True, hold_time=3, bounce_time=0.1) # Vypne Pi po 3 sekundách
+key_shutdown = Button(16, pull_up=True, hold_time=3, bounce_time=0.1)
 
 disp = SH1106.SH1106()
 image = Image.new('1', (disp.width, disp.height), "BLACK")
@@ -42,14 +66,21 @@ except IOError:
     font_large = ImageFont.load_default()
     font_xl = ImageFont.load_default()
 
-# --- Globálne premenné ---
-sequence_list = []
-selected_index = 0
-current_mode = "LIST"
-needs_redraw = True
-last_fpp_status = {}
 
 # --- Funkcie ---
+def load_settings():
+    """Načíta nastavenia z config.json súboru."""
+    global settings
+    defaults = {'showBattery': True}
+    try:
+        with open(CONFIG_FILE_PATH, 'r') as f:
+            loaded_settings = json.load(f)
+            # Zabezpečí, že všetky kľúče existujú
+            settings = {**defaults, **loaded_settings}
+    except (FileNotFoundError, json.JSONDecodeError):
+        print("Config file not found or invalid. Using default settings.")
+        settings = defaults
+
 def run_api_command(command_path):
     try:
         url = f"{FPP_API_URL}{command_path}"
@@ -59,7 +90,7 @@ def run_api_command(command_path):
     except requests.exceptions.RequestException as e:
         print(f"API Command ERROR for '{url}': {e}")
         return False
-        
+
 def get_api_status(command_path):
     try:
         url = f"{FPP_API_URL}{command_path}"
@@ -120,18 +151,22 @@ def draw_ui():
     global needs_redraw
     if not needs_redraw: return
     draw.rectangle((0,0,disp.width,disp.height), 0, 0)
-    
+
     if current_mode == "LIST":
         ip = get_ip_address()
-        batt = get_battery_status()
-        batt_text = f"{int(batt)}%" if batt != -1 else "N/A"
         draw.text((2, 0), ip, font=font_small, fill=1)
-        draw.text((disp.width - 38, 0), batt_text, font=font_small, fill=1)
-        draw.line([(0, 12), (disp.width, 12)], fill=1, width=1)
         
+        # --- NOVÁ LOGIKA: Zobraz batériu iba ak je povolená v nastaveniach ---
+        if settings.get('showBattery', True):
+            batt = get_battery_status()
+            batt_text = f"{int(batt)}%" if batt != -1 else "N/A"
+            draw.text((disp.width - 38, 0), batt_text, font=font_small, fill=1)
+        # --- KONIEC NOVEJ LOGIKY ---
+
+        draw.line([(0, 12), (disp.width, 12)], fill=1, width=1)
         draw.text((92, 18), "PLAY", font=font_large, fill=1)
         draw.text((92, 33), "STOP", font=font_large, fill=1)
-        draw.text((92, 48), "OFF", font=font_large, fill=1) # Vrátené naspäť
+        draw.text((92, 48), "OFF", font=font_large, fill=1)
         draw.line([(88, 12), (88, disp.height)], fill=1, width=1)
 
         y_pos = 14
@@ -200,16 +235,19 @@ def handle_stop():
 
 def handle_shutdown():
     draw_message("Shutting Down...", delay=3)
-    run_api_command("command/Stop%20Gracefully") 
+    run_api_command("command/Stop%20Gracefully")
     time.sleep(1)
-    subprocess.run("sudo shutdown -h now", shell=True)
+    # Odporúča sa používať plnú cestu pre shutdown pre spoľahlivosť
+    subprocess.run("/sbin/shutdown -h now", shell=True)
 
 # --- Hlavná Slučka ---
 def main():
     global current_mode, needs_redraw, last_fpp_status
     if os.geteuid() != 0:
-        print("Error: This script must be run with 'sudo'.")
-        return
+        print("Warning: This script should ideally run with 'sudo' for full hardware access.")
+    
+    # Načítaj nastavenia pluginu hneď na začiatku
+    load_settings()
 
     disp.Init()
     disp.set_contrast(DEFAULT_BRIGHTNESS)
@@ -221,7 +259,7 @@ def main():
     joy_down.when_pressed = handle_down
     key_play.when_pressed = handle_play
     key_stop.when_pressed = handle_stop
-    key_shutdown.when_held = handle_shutdown # Vypne Pi po 3s podržaní
+    key_shutdown.when_held = handle_shutdown
     
     last_status_check = 0
     last_list_refresh = 0
@@ -245,6 +283,8 @@ def main():
             last_status_check = time.time()
 
         if current_mode == "LIST" and time.time() - last_list_refresh > LIST_REFRESH_INTERVAL:
+            # Tu by sa malo volať get_sequences(), aby sa zoznam obnovoval
+            get_sequences()
             needs_redraw = True
             last_list_refresh = time.time()
 
@@ -255,5 +295,11 @@ if __name__ == '__main__':
     try:
         main()
     except KeyboardInterrupt:
+        print("\nExiting script.")
         disp.clear()
-        draw_message("Goodbye!", 1)
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        # Zapíš chybu do logu pre jednoduchšie ladenie
+        with open(f"/home/fpp/media/logs/{PLUGIN_NAME}.log", "a") as log_file:
+            log_file.write(f"FATAL ERROR: {e}\n")
+        disp.clear()

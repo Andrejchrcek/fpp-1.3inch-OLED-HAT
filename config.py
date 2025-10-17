@@ -29,6 +29,8 @@ class RaspberryPi:
         self.i2c = i2c
         self.Device = Device_I2C
         
+        self.GPIO_DC_PIN = self.gpio_mode(DC_PIN, self.OUTPUT)
+        
     def digital_write(self, pin, value):
         if value:
             pin.on()
@@ -61,36 +63,26 @@ class RaspberryPi:
             self.spi.max_speed_hz = self.SPEED
             self.spi.mode = 0b00
             
-            # TENTO RIADOK JE ZAKOMENTOVANÝ, ABY ZNOVA NEOVLÁDAL RESET PIN
+            # RST pin je zakomentovaný, riadi ho oled_remote.py
             # self.GPIO_RST_PIN = self.gpio_mode(RST_PIN,self.OUTPUT)
             
-            self.GPIO_DC_PIN = self.gpio_mode(DC_PIN,self.OUTPUT)
+            # DC pin sa už vytvára v __init__, tu ho nepotrebujeme
+            # self.GPIO_DC_PIN = self.gpio_mode(DC_PIN,self.OUTPUT)
+            
             self.GPIO_CS_PIN = self.gpio_mode(CS_PIN,self.OUTPUT)
             self.GPIO_BL_PIN = self.gpio_mode(BL_PIN,self.OUTPUT)
             self.digital_write(self.GPIO_CS_PIN,True)
             self.digital_write(self.GPIO_DC_PIN,True)
-            return 0
         else:
             self.address = 0x3c
-            
-            # TENTO RIADOK JE ZAKOMENTOVANÝ, ABY ZNOVA NEOVLÁDAL RESET PIN
-            # self.GPIO_RST_PIN = self.gpio_mode(RST_PIN,self.OUTPUT)
-            
-            self.GPIO_DC_PIN = self.gpio_mode(DC_PIN,self.OUTPUT)
-            return 0
+            # RST a DC piny už neriešime tu, sú vyriešené inde
+        
+        return 0
 
     def module_exit(self):
         if self.Device == Device_SPI:
-            
-            # TENTO RIADOK JE TIEŽ ZAKOMENTOVANÝ
-            # self.digital_write(self.GPIO_RST_PIN,False)
-            
             self.digital_write(self.GPIO_DC_PIN,False)
             self.spi.close()
         else:
-            
-            # A AJ TENTO POSLEDNÝ RIADOK S RESET PINOM
-            # self.digital_write(self.GPIO_RST_PIN,False)
-            
             self.digital_write(self.GPIO_DC_PIN,False)
             self.i2c.close()

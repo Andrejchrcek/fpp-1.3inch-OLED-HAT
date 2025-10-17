@@ -21,16 +21,16 @@ if [ "$ENABLED" == "true" ]; then
     echo "Enabling OLED-Remote startup script via API..."
     # Použijeme API na nastavenie štartovacieho skriptu.
     # Hodnotu posielame v úvodzovkách, lebo API očakáva JSON string.
-    curl -s -X POST -d "\"${PYTHON_SCRIPT}\"" "${FPP_API_URL}/setting/FPPStartScript"
+    curl -s -X POST -d "\"${PYTHON_SCRIPT}\"" "${FPP_API_URL}/settings/FPPStartScript"
 else
     echo "Disabling OLED-Remote startup script via API..."
     # Najprv zistíme, či je náš skript aktuálne nastavený
-    CURRENT_START_SCRIPT=$(curl -s "${FPP_API_URL}/setting/FPPStartScript")
+    CURRENT_START_SCRIPT=$(curl -s "${FPP_API_URL}/settings/FPPStartScript")
     
     # Porovnáme ho s názvom nášho skriptu (vrátane úvodzoviek, ktoré vracia API)
     if [ "$CURRENT_START_SCRIPT" == "\"${PYTHON_SCRIPT}\"" ]; then
         # Ak áno, nastavíme prázdnu hodnotu, čím ho vymažeme
-        curl -s -X POST -d '""' "${FPP_API_URL}/setting/FPPStartScript"
+        curl -s -X POST -d '""' "${FPP_API_URL}/settings/FPPStartScript"
     else
         echo "Startup script is not set to our script, doing nothing."
     fi

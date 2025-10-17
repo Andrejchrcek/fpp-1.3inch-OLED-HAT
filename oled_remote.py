@@ -43,7 +43,7 @@ last_config_check = 0  # Čas poslednej kontroly config súboru
 joy_up = Button(6, pull_up=True, bounce_time=0.1)
 joy_down = Button(19, pull_up=True, bounce_time=0.1)
 key_play = Button(21, pull_up=True, bounce_time=0.1)
-key_stop = Button(20, pull_up=True, bounce_time=0.1, hold_time=1)  # Pridané hold_time=1 pre STOP
+key_stop = Button(20, pull_up=True, bounce_time=0.1, hold_time=1)
 key_shutdown = Button(16, pull_up=True, hold_time=3, bounce_time=0.1)
 
 disp = SH1106.SH1106()
@@ -74,13 +74,12 @@ def load_settings():
         with open(CONFIG_FILE_PATH, 'r') as f:
             loaded_settings = json.load(f)
             settings = {**defaults, **loaded_settings}
-            # Konverzia showBattery na boolean pre jednoduchšie použitie
             settings['showBattery'] = settings.get('showBattery', "1") == "1"
         print(f"Settings loaded: {settings}")
     except (FileNotFoundError, json.JSONDecodeError) as e:
         print(f"Config file error: {e}. Using default settings.")
         settings = defaults
-        settings['showBattery'] = True  # Predvolené ako boolean
+        settings['showBattery'] = True
 
 def run_api_command(command_path):
     try:
@@ -112,58 +111,69 @@ def get_sequences():
             sequence_list = sorted(sequences) if sequences else ["(No sequences found)"]
         else:
             sequence_list = ["(Directory not found)"]
+        print(f"Sequences loaded: {sequence_list}")
     except Exception as e:
         sequence_list = [f"(Error: {e})"]
+        print(f"Error loading sequences: {e}")
 
 def get_ip_address():
     try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.connect(("8.8.8.8", 80)); ip = s.getsockname()[0]; s.close(); return ip
-    except Exception: return "N/A"
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "N/A"
 
 def get_battery_status():
-    if not battery_available: return -1
+    if not battery_available:
+        return -1
     try:
         percent = (battery_monitor.getBusVoltage_V() - 3.0) / 1.2 * 100
         return max(0, min(100, percent))
-    except Exception: return -1
+    except Exception:
+        return -1
 
 def format_time(seconds_str):
     try:
         seconds = int(float(seconds_str))
         mins, secs = divmod(seconds, 60)
         return f"{mins:02d}:{secs:02d}"
-    except (ValueError, TypeError): return "00:00"
+    except (ValueError, TypeError):
+        return "00:00"
 
 def draw_message(message, delay=2):
     global needs_redraw
-    draw.rectangle((0,0,disp.width,disp.height), 0, 0)
+    draw.rectangle((0, 0, disp.width, disp.height), 0, 0)
     lines = message.split('\n')
-    y = (disp.height - (len(lines) * 14)) / 2
+    y = (disp.height - (len(lines) * 14)) // 2
     for line in lines:
         w = draw.textlength(line, font=font_large)
-        x = (disp.width - w) / 2
+        x = (disp.width - w) // 2
         draw.text((x, y), line, font=font_large, fill=1)
         y += 14
     disp.ShowImage(disp.getbuffer(image))
-    time.sleep(delay)
+    print(f"Displayed message: {message}")  # Logovanie pre ladenie
+    if delay > 0:
+        time.sleep(delay)
     needs_redraw = True
 
 def draw_ui():
     global needs_redraw, last_config_check
-    if not needs_redraw: return
+    if not needs_redraw:
+        return
 
-    # Dynamicky načítaj nastavenia každých 5 sekúnd
     if time.time() - last_config_check > 5:
         load_settings()
         last_config_check = time.time()
 
-    draw.rectangle((0,0,disp.width,disp.height), 0, 0)
+    draw.rectangle((0, 0, disp.width, disp.height), 0, 0)
 
     if current_mode == "LIST":
         ip = get_ip_address()
         draw.text((2, 0), ip, font=font_small, fill=1)
         
-        # Zobraz batériu iba ak je povolená v nastaveniach
         if settings.get('showBattery', True):
             batt = get_battery_status()
             batt_text = f"{int(batt)}%" if batt != -1 else "N/A"
@@ -205,14 +215,18 @@ def draw_ui():
         
         time_text = f"{elapsed} / {total_formatted}"
         w = draw.textlength(time_text, font=font_xl)
-        draw.text(((disp.width - w) / 2, 20), time_text, font=font_xl, fill=1)
+        draw.text(((disp.width - w) // 2, 20), time_text, font=font_xl, fill=1)
 
         bar_y = 45
         bar_width = int(disp.width * progress)
         draw.rectangle((0, bar_y, disp.width - 1, bar_y + 10), outline=1, fill=0)
         if bar_width > 0:
-            draw.rectangle((1, bar_y + 1, bar_width -1, bar_y + 9), outline=1, fill=1)
-        draw.text((2, 55), "Hold STOP 1s to exit", font=font_small, fill=1)  # Upravený text pre STOP
+            draw.rectangle((1, bar_y + 1, bar_width - 1, bar_y + 9), outline=1, fill=1)
+        draw.text((2, 55), "Hold STOP 1s to exit", font=font_small, fill=1)
+
+    disp.ShowImage(disp.getbuffer(image))
+    print("UI redrawn")  # Logovanie pre ladenie
+    needs_redraw = False
 
 # --- Handlery pre Tlačidlá ---
 def handle_up():
@@ -228,19 +242,26 @@ def handle_down():
         needs_redraw = True
 
 def handle_play():
-    if current_mode != "LIST" or not sequence_list or selected_index >= len(sequence_list): return
+    if current_mode != "LIST" or not sequence_list or selected_index >= len(sequence_list):
+        return
     seq_to_play = sequence_list[selected_index]
-    if "(No" in seq_to_play or "(Error" in seq_to_play: return
+    if "(No" in seq_to_play or "(Error" in seq_to_play:
+        return
     run_api_command(f"command/Start%20Playlist/{seq_to_play}.fseq/1/false")
 
 def handle_stop():
     global needs_redraw
     run_api_command("command/Stop%20Now")
-    needs_redraw = True  # Prekresli UI po zastavení
+    needs_redraw = True
 
 def handle_shutdown_pressed():
-    # Zobraz správu hneď po stlačení tlačidla OFF
-    draw_message("Hold 3 seconds", delay=0)  # delay=0, aby sa nezdržiavalo
+    draw_message("Hold 3 seconds", delay=0)
+    print("OFF button pressed: Displaying 'Hold 3 seconds'")
+
+def handle_shutdown_released():
+    global needs_redraw
+    needs_redraw = True
+    print("OFF button released: Redrawing UI")
 
 def handle_shutdown():
     draw_message("Shutting Down...", delay=3)
@@ -254,59 +275,66 @@ def main():
     if os.geteuid() != 0:
         print("Warning: This script should ideally run with 'sudo' for full hardware access.")
     
-    # Načítaj nastavenia pluginu hneď na začiatku
+    print("Starting main loop")
     load_settings()
     last_config_check = time.time()
 
-    disp.Init()
-    disp.set_contrast(DEFAULT_BRIGHTNESS)
-    
+    try:
+        disp.Init()
+        disp.set_contrast(DEFAULT_BRIGHTNESS)
+        print("Display initialized")
+    except Exception as e:
+        print(f"Display initialization error: {e}")
+
     draw_message("Loading...")
     get_sequences()
     
     joy_up.when_pressed = handle_up
     joy_down.when_pressed = handle_down
     key_play.when_pressed = handle_play
-    # STOP reaguje okamžite v LIST režime, ale v PLAYING vyžaduje podržanie 1s
     key_stop.when_pressed = handle_stop if current_mode == "LIST" else None
     key_stop.when_held = handle_stop if current_mode == "PLAYING" else None
-    key_shutdown.when_pressed = handle_shutdown_pressed  # Nový handler pre stlačenie OFF
+    key_shutdown.when_pressed = handle_shutdown_pressed
+    key_shutdown.when_released = handle_shutdown_released  # Nový handler pre uvoľnenie
     key_shutdown.when_held = handle_shutdown
     
     last_status_check = 0
     last_list_refresh = 0
     
+    print("Entering main loop")
     while True:
-        if time.time() - last_status_check > 0.5:
-            new_status = get_api_status("fppd/status")
-            if new_status:
-                last_fpp_status = new_status
-                is_playing = last_fpp_status.get('status_name') == 'playing'
-                
-                if is_playing and current_mode != "PLAYING":
-                    current_mode = "PLAYING"
-                    # Aktualizuj handlery pre STOP v PLAYING režime
-                    key_stop.when_pressed = None
-                    key_stop.when_held = handle_stop
-                    needs_redraw = True
-                elif not is_playing and current_mode == "PLAYING":
-                    current_mode = "LIST"
-                    # Aktualizuj handlery pre STOP v LIST režime
-                    key_stop.when_pressed = handle_stop
-                    key_stop.when_held = None
-                    needs_redraw = True
-                
-                if current_mode == "PLAYING":
-                    needs_redraw = True
-            last_status_check = time.time()
+        try:
+            if time.time() - last_status_check > 0.5:
+                new_status = get_api_status("fppd/status")
+                if new_status:
+                    last_fpp_status = new_status
+                    is_playing = last_fpp_status.get('status_name') == 'playing'
+                    
+                    if is_playing and current_mode != "PLAYING":
+                        current_mode = "PLAYING"
+                        key_stop.when_pressed = None
+                        key_stop.when_held = handle_stop
+                        needs_redraw = True
+                    elif not is_playing and current_mode == "PLAYING":
+                        current_mode = "LIST"
+                        key_stop.when_pressed = handle_stop
+                        key_stop.when_held = None
+                        needs_redraw = True
+                    
+                    if current_mode == "PLAYING":
+                        needs_redraw = True
+                last_status_check = time.time()
 
-        if current_mode == "LIST" and time.time() - last_list_refresh > LIST_REFRESH_INTERVAL:
-            get_sequences()
-            needs_redraw = True
-            last_list_refresh = time.time()
+            if current_mode == "LIST" and time.time() - last_list_refresh > LIST_REFRESH_INTERVAL:
+                get_sequences()
+                needs_redraw = True
+                last_list_refresh = time.time()
 
-        draw_ui()
-        time.sleep(0.05)
+            draw_ui()
+            time.sleep(0.05)
+        except Exception as e:
+            print(f"Error in main loop: {e}")
+            time.sleep(1)  # Krátke oneskorenie pred pokračovaním
 
 if __name__ == '__main__':
     try:

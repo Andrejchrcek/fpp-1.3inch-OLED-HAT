@@ -29,10 +29,7 @@ class RaspberryPi:
         self.i2c = i2c
         self.Device = Device_I2C
         
-        # --- KĽÚČOVÁ OPRAVA JE TU ---
-        # Vytvoríme DC pin okamžite pri inicializácii, aby bol vždy dostupný.
         self.GPIO_DC_PIN = self.gpio_mode(DC_PIN, self.OUTPUT)
-        # ---------------------------
         
     def digital_write(self, pin, value):
         if value:

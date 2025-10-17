@@ -1,22 +1,19 @@
 #!/bin/bash
-set -e  # Zastav pri chybe
+set -e  # Zastav skript pri akejkoľvek chybe
 
-# Log súbor
-LOG_FILE="/home/fpp/media/logs/fseq_install.log"
-echo "=== FSEQDistributor Installation ===" > $LOG_FILE
+# Log súbor pre inštaláciu
+LOG_FILE="/home/fpp/media/logs/oled_remote_install.log"
+echo "=== FPP OLED Remote Plugin Installation ===" > $LOG_FILE
 echo "Started: $(date)" >> $LOG_FILE
 
-# Nainštaluj python3-pip ak chýba
-echo "Installing python3-pip..." | tee -a $LOG_FILE
+# Inštalácia systémových závislostí pre Pillow, GPIO a I2C
+echo "Installing system dependencies..." | tee -a $LOG_FILE
 sudo apt-get update >> $LOG_FILE 2>&1
-sudo apt-get install -y python3-pip >> $LOG_FILE 2>&1
+sudo apt-get install -y python3-pip python3-pil libjpeg-dev i2c-tools >> $LOG_FILE 2>&1
 
-# Nainštaluj Python balíky
+# Inštalácia potrebných Python balíčkov
 echo "Installing Python packages..." | tee -a $LOG_FILE
-pip3 install --break-system-packages openpyxl requests-toolbelt requests 2>&1 | tee -a $LOG_FILE
-
-# Vytvor temp priečinok
-mkdir -p temp
+pip3 install --break-system-packages requests Pillow gpiozero 2>&1 | tee -a $LOG_FILE
 
 echo "Installation complete!" | tee -a $LOG_FILE
 echo "Finished: $(date)" >> $LOG_FILE

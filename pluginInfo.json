@@ -7,9 +7,6 @@
 	"srcURL": "https://github.com/Andrejchrcek/fpp-oled_remote.git",
 	"bugURL": "https://github.com/Andrejchrcek/fpp-oled_remote/issues",
 	"allowUpdates": 1,
-	"autorun": [
-    "oled_remote.py"
-  ],
 	"versions": [
 		{
 			"minFPPVersion": "9.0",

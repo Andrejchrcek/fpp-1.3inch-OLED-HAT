@@ -1,2 +1,2 @@
 #!/bin/bash
-echo "fpp-1.3inch-OLED-HAT uninstalled."
+echo "oled_remote uninstalled."

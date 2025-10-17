@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Názov pluginu a skriptov
-PLUGIN_NAME="OLED-Remote"
+PLUGIN_NAME="fpp-oled_remote"
 PYTHON_SCRIPT="oled_remote.py"
 
 # Cesty

@@ -66,7 +66,7 @@ if (file_exists($configFile)) {
             </div>
         </div>
     </form>
-
+    
     <hr style="margin-top: 25px; margin-bottom: 25px;">
     
     <legend>ℹ️ Hardware Pinout (BCM)</legend>
@@ -79,26 +79,28 @@ if (file_exists($configFile)) {
             margin-top: 15px;
             margin-bottom: 15px;
             border-collapse: collapse;
-            border: 1px solid #555;
+            border: 1px solid #ccc; /* Svetlý okraj */
+            color: #333; /* Tmavé písmo pre celú tabuľku */
+            background-color: #fff; /* Biele pozadie */
         }
         .pin-table th, .pin-table td {
-            border: 1px solid #555;
+            border: 1px solid #ccc; /* Svetlé okraje buniek */
             padding: 8px;
             text-align: left;
         }
         .pin-table th {
-            background-color: #3a3a3a; /* Tmavá hlavička pre FPP */
+            background-color: #f0f0f0; /* Veľmi svetlo šedá hlavička */
+            font-weight: bold;
         }
         .pin-table tr:nth-child(even) {
-            background-color: #2c2c2c; /* "Zebra" štýl */
+            background-color: #f9f9f9; /* Jemné "zebra" pruhy */
         }
         .pin-table .category-row td {
-            background-color: #404040; /* Hlavička kategórie */
+            background-color: #e9e9e9; /* Trochu tmavšia šedá pre kategóriu */
             font-weight: bold;
-            color: #eee;
+            color: #000; /* Zaistenie čierneho písma */
         }
     </style>
-
     <table class="pin-table">
         <thead>
             <tr>
@@ -161,4 +163,4 @@ if (file_exists($configFile)) {
     </table>
     <em>Note: This list assumes the I2C communication mode. Unused SPI-related pins (GPIO 8, 10, 11, 18, 24) are not required.</em>
     
-    </div>
+</div>

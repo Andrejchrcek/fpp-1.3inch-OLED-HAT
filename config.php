@@ -66,4 +66,99 @@ if (file_exists($configFile)) {
             </div>
         </div>
     </form>
-</div>
+
+    <hr style="margin-top: 25px; margin-bottom: 25px;">
+    
+    <legend>ℹ️ Hardware Pinout (BCM)</legend>
+    <p>This plugin uses the following GPIO pins (BCM numbering) for the I2C version of the hardware:</p>
+    
+    <style>
+        .pin-table {
+            width: 90%;
+            max-width: 600px;
+            margin-top: 15px;
+            margin-bottom: 15px;
+            border-collapse: collapse;
+            border: 1px solid #555;
+        }
+        .pin-table th, .pin-table td {
+            border: 1px solid #555;
+            padding: 8px;
+            text-align: left;
+        }
+        .pin-table th {
+            background-color: #3a3a3a; /* Tmavá hlavička pre FPP */
+        }
+        .pin-table tr:nth-child(even) {
+            background-color: #2c2c2c; /* "Zebra" štýl */
+        }
+        .pin-table .category-row td {
+            background-color: #404040; /* Hlavička kategórie */
+            font-weight: bold;
+            color: #eee;
+        }
+    </style>
+
+    <table class="pin-table">
+        <thead>
+            <tr>
+                <th>Pin (BCM)</th>
+                <th>Function</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="category-row">
+                <td colspan="2">Controls (Inputs)</td>
+            </tr>
+            <tr>
+                <td>GPIO 5</td>
+                <td>Joystick Left</td>
+            </tr>
+            <tr>
+                <td>GPIO 6</td>
+                <td>Joystick Up</td>
+            </tr>
+            <tr>
+                <td>GPIO 13</td>
+                <td>Joystick Press</td>
+            </tr>
+            <tr>
+                <td>GPIO 16</td>
+                <td>Button 3 (Shutdown)</td>
+            </tr>
+            <tr>
+                <td>GPIO 19</td>
+                <td>Joystick Down</td>
+            </tr>
+            <tr>
+                <td>GPIO 20</td>
+                <td>Button 2 (Stop)</td>
+            </tr>
+            <tr>
+                <td>GPIO 21</td>
+                <td>Button 1 (Play)</td>
+            </tr>
+            <tr>
+                <td>GPIO 26</td>
+                <td>Joystick Right</td>
+            </tr>
+            <tr class="category-row">
+                <td colspan="2">Communication & Power (I2C)</td>
+            </tr>
+            <tr>
+                <td>GPIO 2 (SDA)</td>
+                <td>I2C Data (Shared: Display & INA219)</td>
+            </tr>
+            <tr>
+                <td>GPIO 3 (SCL)</td>
+                <td>I2C Clock (Shared: Display & INA219)</td>
+            </tr>
+            <tr>
+                <td>GPIO 25</td>
+                <td>Display Power / Reset (Output)</td>
+            </tr>
+        </tbody>
+    </table>
+    <em>Note: This list assumes the I2C communication mode. Unused SPI-related pins (GPIO 8, 10, 11, 18, 24) are not required.</em>
+    
+    </div>

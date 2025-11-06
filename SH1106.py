@@ -2,7 +2,7 @@ import config
 import time
 import numpy as np
 
-Device_SPI = config.Device_SPI
+# Device_SPI = config.Device_SPI <-- ZMAZANÉ
 Device_I2C = config.Device_I2C
 
 LCD_WIDTH   = 128 #LCD width
@@ -13,24 +13,19 @@ class SH1106(object):
         self.width = LCD_WIDTH
         self.height = LCD_HEIGHT
         self.RPI = config.RaspberryPi()
-        self._dc = self.RPI.GPIO_DC_PIN
-        # TENTO RIADOK JE ZAKOMENTOVANÝ, ABY NEPOUŽÍVAL RESET PIN
-        # self._rst = self.RPI.GPIO_RST_PIN
+        # self._dc = self.RPI.GPIO_DC_PIN <-- ZMAZANÉ (už neexistuje)
+        # self._rst = ... (už bolo zakomentované)
         self.Device = self.RPI.Device
 
     def command(self, cmd):
-        if(self.Device == Device_SPI):
-            self.RPI.digital_write(self._dc,False)
-            self.RPI.spi_writebyte([cmd])
-        else:
-            self.RPI.i2c_writebyte(0x00, cmd)
+        # --- Zjednodušené len pre I2C ---
+        self.RPI.i2c_writebyte(0x00, cmd)
 
     def Init(self):
         if (self.RPI.module_init() != 0):
             return -1
         """Initialize dispaly"""
-        # TENTO RIADOK JE ZAKOMENTOVANÝ, ABY NEVOLAL FUNKCIU RESET
-        # self.reset()
+        # self.reset() (už bolo zakomentované)
         
         self.command(0xAE);#--turn off oled panel
         self.command(0x02);#---set low column address
@@ -65,15 +60,7 @@ class SH1106(object):
         self.command(0x81)
         self.command(contrast)
     
-    # CELÁ FUNKCIA RESET JE ZAKOMENTOVANÁ, LEBO JE ZBYTOČNÁ A NEBEZPEČNÁ
-    # def reset(self):
-        # """Reset the display"""
-        # self.RPI.digital_write(self._rst,True)
-        # time.sleep(0.1)
-        # self.RPI.digital_write(self._rst,False)
-        # time.sleep(0.1)
-        # self.RPI.digital_write(self._rst,True)
-        # time.sleep(0.1)
+    # def reset(self): (už bolo zakomentované)
     
     def getbuffer(self, image):
         buf = [0xFF] * ((self.width//8) * self.height)
@@ -92,13 +79,9 @@ class SH1106(object):
             self.command(0xB0 + page)
             self.command(0x02); 
             self.command(0x10); 
-            if(self.Device == Device_SPI):
-                self.RPI.digital_write(self._dc,True)
+            # --- Zjednodušené len pre I2C ---
             for i in range(0,self.width):
-                if(self.Device == Device_SPI):
-                    self.RPI.spi_writebyte([~pBuf[i+self.width*page]]); 
-                else :
-                    self.RPI.i2c_writebyte(0x40, ~pBuf[i+self.width*page])
+                self.RPI.i2c_writebyte(0x40, ~pBuf[i+self.width*page])
                         
     def clear(self):
         _buffer = [0xff]*(self.width * self.height//8)

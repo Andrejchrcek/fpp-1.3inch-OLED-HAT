@@ -1,35 +1,27 @@
 # -*- coding:utf-8 -*-
 
 import time
-import spidev
+# import spidev  <-- ZMAZANÉ
 from gpiozero import DigitalOutputDevice, DigitalInputDevice
 from smbus import SMBus
 
-# Pin definition
-RST_PIN         = 25
-DC_PIN          = 24
-CS_PIN          = 8
-BL_PIN          = 18
+# --- Pin definition ZMAZANÉ ---
+# (RST, DC, CS, BL piny boli len pre SPI)
 
-# SPI device, bus = 0, device = 0
-Device_SPI = 0
+# SPI device <-- ZMAZANÉ
 Device_I2C = 1
 
 class RaspberryPi:
-    def __init__(self, spi=spidev.SpiDev(0,0), i2c=SMBus(1), spi_speed=10000000):
+    # --- __init__ zjednodušený len pre I2C ---
+    def __init__(self, i2c=SMBus(1)):
         self.INPUT = False
         self.OUTPUT = True
         self.np = None
-        self.RST_PIN = RST_PIN
-        self.DC_PIN = DC_PIN
-        self.CS_PIN = CS_PIN
-        self.BL_PIN = BL_PIN
-        self.SPEED = spi_speed
-        self.spi = spi
         self.i2c = i2c
         self.Device = Device_I2C
         
-        self.GPIO_DC_PIN = self.gpio_mode(DC_PIN, self.OUTPUT)
+        # --- TOTO BOL PROBLÉM, JE TO PREČ ---
+        # self.GPIO_DC_PIN = self.gpio_mode(DC_PIN, self.OUTPUT)
         
     def digital_write(self, pin, value):
         if value:
@@ -43,8 +35,7 @@ class RaspberryPi:
     def delay_ms(self, delaytime):
         time.sleep(delaytime / 1000.0)
 
-    def spi_writebyte(self, data):
-        self.spi.writebytes(data)
+    # --- spi_writebyte ZMAZANÉ ---
 
     def i2c_writebyte(self, reg, value):
         self.i2c.write_byte_data(self.address, reg, value)
@@ -58,31 +49,12 @@ class RaspberryPi:
             else:
                 return DigitalInputDevice(Pin, pull_up=False, active_state=active_state)
 
+    # --- module_init zjednodušený len pre I2C ---
     def module_init(self):
-        if self.Device == Device_SPI:
-            self.spi.max_speed_hz = self.SPEED
-            self.spi.mode = 0b00
-            
-            # RST pin je zakomentovaný, riadi ho oled_remote.py
-            # self.GPIO_RST_PIN = self.gpio_mode(RST_PIN,self.OUTPUT)
-            
-            # DC pin sa už vytvára v __init__, tu ho nepotrebujeme
-            # self.GPIO_DC_PIN = self.gpio_mode(DC_PIN,self.OUTPUT)
-            
-            self.GPIO_CS_PIN = self.gpio_mode(CS_PIN,self.OUTPUT)
-            self.GPIO_BL_PIN = self.gpio_mode(BL_PIN,self.OUTPUT)
-            self.digital_write(self.GPIO_CS_PIN,True)
-            self.digital_write(self.GPIO_DC_PIN,True)
-        else:
-            self.address = 0x3c
-            # RST a DC piny už neriešime tu, sú vyriešené inde
-        
+        self.address = 0x3c
         return 0
 
+    # --- module_exit zjednodušený len pre I2C ---
     def module_exit(self):
-        if self.Device == Device_SPI:
-            self.digital_write(self.GPIO_DC_PIN,False)
-            self.spi.close()
-        else:
-            self.digital_write(self.GPIO_DC_PIN,False)
-            self.i2c.close()
+        # self.digital_write(self.GPIO_DC_PIN,False) <-- ZMAZANÉ (lebo DC pin neexistuje)
+        self.i2c.close()
